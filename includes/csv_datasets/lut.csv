@@ -1,0 +1,9 @@
+landuse,lu_code,risk,duration_month,avg_yield_ha,note,month_can_start,end_be_for
+vegetable,BHK,0.2,3,20,ton,1,12
+sugarcan,LNC,0.4,12,6.5,ton,1,12
+shrimp,TSL,1.0,4,4,ton,1,10
+coconut,LNQ,0.3,1,5000,piece,1,12
+rice,LUC,0.1,4,3.5,ton,1,12
+rice_vegetable,LUK,0.2,3,3.5,ton,6,12
+rice_shrimp,LTM,0.3,4,1.5,ton,9,12
+tree,LNK,0.0,1,0,ton,1,12
