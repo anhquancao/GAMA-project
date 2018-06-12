@@ -21,8 +21,10 @@ global
 	file csv_cost <- csv_file("../includes/csv_datasets/cost.csv", false);
 	float max_salinity <- 12.0;
 	float min_salinity <- 2.0;
+	int nb_farmers <- 0;
 	float sell_prob_change <- 0.1;
 	float risk_control <- 1.5;
+	int end_year <- 2020;
 	float land_price <- 10 ^ 5;
 	float gdp <- 0.0;
 	float max_price;
@@ -259,11 +261,16 @@ global
 
 	}
 
+	/**
+	 * Update GDP per capita
+	 */
 	reflex update_gdp when: every(#year) {
-		gdp <- farmer sum_of (each.money);
+		list<farmer> f <- farmer where (each.migrated = false);
+		gdp <- mean(f collect (each.money));
+		nb_farmers <- length(f);
 	}
 
-	reflex end_simulation when: current_date.year = 2010 and current_date.month = 12
+	reflex end_simulation when: current_date.year = end_year and current_date.month = 12
 	{
 		do pause;
 	}
@@ -523,7 +530,7 @@ species farmer
 	 */
 	float compute_neighborhood (land_use a_lu)
 	{
-		int nb_similars <- neighborhood count (length(each.my_parcels) != 0 and each.my_parcels[0].my_land_use = a_lu);
+		int nb_similars <- neighborhood count (length(each.my_parcels) != 0 and any(each.my_parcels).my_land_use = a_lu);
 		return nb_similars / length(neighborhood);
 	}
 
@@ -636,6 +643,27 @@ species farmer
 
 }
 
+experiment BatchVariance type: batch
+	until: cycle > 300 or current_date.year = end_year repeat: 2 {
+		parameter "Risk control: " var: risk_control min: 0.5 max: 2.5 step: 0.5;
+		parameter "Land price:" var: land_price min: 5 * 10 ^ 4 max: 2 * 10 ^ 5 step: 5 * 10 ^ 4;
+		parameter "Sell prob change: " var: sell_prob_change min: 0.1 max: 0.5 step: 0.2;
+		method exhaustive;
+		
+		init {
+			save ["Risk control", "Land price", "Prob change", "GDP per capita", "Farmer"] to: "resVar.csv" type: "csv" rewrite: true;
+		}
+		
+		reflex sauver {
+				save [
+					risk_control, 
+					land_price, sell_prob_change, 
+					mean(simulations collect (each.gdp)), 
+					mean(simulations collect(each.nb_farmers))
+				] to:"resVar.csv" type:"csv" rewrite: false;
+		}
+	}
+
 experiment display_map
 {
 	parameter "Risk control: " var: risk_control;
@@ -656,7 +684,7 @@ experiment display_map
 		{
 			chart "GDP per capita" type: series
 			{
-				data "GDP per capita" value: gdp / length(farmer where (!each.migrated));
+				data "GDP per capita" value: gdp;
 			}
 			
 
@@ -673,7 +701,7 @@ experiment display_map
 		}
 
 		monitor "year" value: current_date.year;
-		monitor "GDP per capita" value: gdp / length(farmer where (!each.migrated));
+		monitor "GDP per capita" value: gdp;
 		
 
 		//		display salinity
