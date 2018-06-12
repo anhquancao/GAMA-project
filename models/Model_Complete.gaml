@@ -21,8 +21,10 @@ global
 	file csv_cost <- csv_file("../includes/csv_datasets/cost.csv", false);
 	float max_salinity <- 12.0;
 	float min_salinity <- 2.0;
+	float sell_prob_change <- 0.1;
 	float risk_control <- 1.5;
 	float land_price <- 10 ^ 5;
+	float gdp <- 0.0;
 	float max_price;
 	map<string, rgb> color_map <- ["BHK"::# darkgreen, "LNC"::# lightgreen, "TSL"::# orange, "LNQ"::# brown, "LUC"::# lightyellow, "LUK"::# gold, "LTM"::# cyan, "LNK"::# red];
 	date starting_date <- date([2005, 1, 1, 0, 0, 0]);
@@ -257,6 +259,10 @@ global
 
 	}
 
+	reflex update_gdp when: every(#year) {
+		gdp <- farmer sum_of (each.money);
+	}
+
 	reflex end_simulation when: current_date.year = 2010 and current_date.month = 12
 	{
 		do pause;
@@ -454,6 +460,9 @@ species farmer
 	list<parcel> my_parcels;
 	bool migrated <- false;
 
+	// probability this farmer will sell his land
+	float sell_prob <- 0.0;
+
 	// the richer you get the bigger you are
 	float size <- 5.0 update: (money / 10 ^ 9) * 10 + 5;
 	list<farmer> neighborhood;
@@ -555,7 +564,7 @@ species farmer
 	action buy_land
 	{
 		list<parcel> can_purchase <- (parcel at_distance (50 * (length(my_parcels)) + size) where (each.owner = nil));
-		if (!migrated and money > 0)
+		if (!migrated and flip(1 - sell_prob))
 		{
 			loop p over: can_purchase
 			{
@@ -589,18 +598,32 @@ species farmer
 			float cost_of_product <- lu.cost_map[current_date.year];
 			float expense <- cost_of_product * area;
 			float profit <- gain - expense;
-
+			
+			// if the farmer has no profit, he will have higher chance to sell his land
+			if (profit < 0) {
+				sell_prob <- sell_prob + sell_prob_change;
+			} else {
+				sell_prob <- sell_prob - sell_prob_change;
+			}
+			
 			// update the money of farmer
 			money <- money + profit;
+			if (money = 0) {
+				sell_prob <- 1.0;
+			}
+			
 		}
 
-		loop while: (money < 0 and length(my_parcels) > 0)
+		loop while: (flip(sell_prob) and length(my_parcels) > 0)
 		{
 		// if the farmer have no money left, he/she sells his/her parcel
 			parcel p <- self.my_parcels[0];
 			self.money <- self.money + p.price; //
 			p.owner <- nil;
 			remove p from: my_parcels;
+			if (money > 0) {
+				sell_prob <- 0.0;
+			}
 		}
 
 		if (length(my_parcels) = 0)
@@ -617,14 +640,25 @@ experiment display_map
 {
 	parameter "Risk control: " var: risk_control;
 	parameter "Land price:" var: land_price;
+	parameter "Sell prob change: " var: sell_prob_change;
 	output
 	{
-		display charts
+		display "lands without farmer"
 		{
-			chart "chart" type: series
+			chart "lands without farmer" type: series
 			{
 				data "number of land without farmer" value: (parcel count (each.owner = nil));
 			}
+			
+
+		}
+		display "GDP per capita"
+		{
+			chart "GDP per capita" type: series
+			{
+				data "GDP per capita" value: gdp / length(farmer where (!each.migrated));
+			}
+			
 
 		}
 
@@ -639,6 +673,8 @@ experiment display_map
 		}
 
 		monitor "year" value: current_date.year;
+		monitor "GDP per capita" value: gdp / length(farmer where (!each.migrated));
+		
 
 		//		display salinity
 		//		{
