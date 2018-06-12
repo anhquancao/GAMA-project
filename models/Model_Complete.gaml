@@ -107,7 +107,7 @@ global
 			add float(read("sal_14")) to: salinity_years at: 2014;
 			my_land_use <- first(land_use where (each.lu_code = lu_years[2005]));
 			current_salinity <- salinity_years[2005];
-			create farmer with:[my_parcel::self, location::location] {
+			create farmer with:[my_parcels::[self], location::location] {
 				myself.owner <- self;	
 			}
 		}
@@ -243,7 +243,7 @@ global
 		do compute_price_this_year;
 		ask farmer parallel:true
 		{
-			if (self.my_parcel != nil) {
+			if (length(my_parcels) != 0) {
 				do make_decision;
 				do compute_money_earn;
 			}
@@ -383,7 +383,8 @@ species sluice
 }
 species farmer
 {
-	parcel my_parcel;
+	// farmer can own many parcel
+	list<parcel> my_parcels;
 	
 	// the richer you get the bigger you are
 	float size <- 5.0 update: (money / 10^9) * 10 + 5;
@@ -394,10 +395,17 @@ species farmer
 	float money <- rnd(50 * 10^6, 200 * 10^6);
 	
 	aspect default {
-		if (my_parcel != nil) {
-			// only display the farmer if he/she owns this land
+		if (length(my_parcels) != 0) {
+			// only display the farmer if he/she owns lands
 			draw circle(size) color: money > 0 ? #white : #black border: #black;
 		}
+	}
+	
+	/**
+	 * Farmer wanders in their lands
+	 */
+	reflex updateFarmerLocation when: length(my_parcels) > 1 {
+		location <- any(my_parcels).location;
 	}
 	
 	
@@ -411,23 +419,49 @@ species farmer
 	{
 		return 1.0 - a_lu.risk;
 	}
+	/**
+	 * Compute the average implementation of all parcels owned by this farmer
+	 */
 	float compute_implementation(land_use a_lu)
 	{
-		return ((3-my_parcel.my_land_use.transition_map[a_lu.lu_code])/2);
+		float value <- 0;
+		loop p over: my_parcels {
+			value <- value + ((3- p.my_land_use.transition_map[a_lu.lu_code])/2);
+		}
+		return value / length(my_parcels);
 	}
+	
+	/**
+	 * Compute the average implementation of all parcels
+	 */
 	float compute_suitability(land_use a_lu)
 	{
-		int f_salinity <- my_parcel.current_salinity<=2?2:
-			(my_parcel.current_salinity<=4?4:
-				(my_parcel.current_salinity<=8?8:12)
+
+		float value <- 0.0;
+		loop p over: my_parcels {
+			int f_salinity <- p.current_salinity<=2?2:
+			(p.current_salinity<=4?4:
+				(p.current_salinity<=8?8:12)
 			);
 			
-		suitability_case sc <- first(suitability_case where(each.lu_code=a_lu.lu_code and each.soil_type=my_parcel.soil_type and each.acidity=my_parcel.acidity and each.salinity=f_salinity));
-		return 1.0-(sc.suitability -1)/3.0;
+			suitability_case sc <- first(suitability_case 
+				where(each.lu_code=a_lu.lu_code 
+					and each.soil_type=p.soil_type 
+					and each.acidity=p.acidity 
+					and each.salinity=f_salinity
+				)
+			);
+			value <- value + 1.0 - (sc.suitability -1)/3.0;
+		}
+		return value / length(my_parcels);
+		
 	}
+	/**
+	 * Because the farmer will plant the same crop on all their land
+	 */
 	float compute_neighborhood(land_use a_lu)
 	{
-		int nb_similars <- neighborhood count(each.my_parcel != nil and each.my_parcel.my_land_use = a_lu);
+		int nb_similars <- neighborhood count(length(each.my_parcels) != 0 and each.my_parcels[0].my_land_use = a_lu);
 		return nb_similars/length(neighborhood);
 	}
 	list<list> land_use_eval(list<land_use> lus) {
@@ -448,7 +482,11 @@ species farmer
 			list<list> cands <- land_use_eval(list(land_use));
 		
 			int choice <- weighted_means_DM(cands, criteria);
-			my_parcel.my_land_use <- land_use[choice];
+			
+			// change all the land this farmer owns
+			loop p over:my_parcels {
+				p.my_land_use <- land_use[choice];
+			}
 		}
 	}
 	
@@ -456,25 +494,29 @@ species farmer
 	 * Compute the money earned each year
 	 */
 	action compute_money_earn {
-		land_use lu <- my_parcel.my_land_use;
-		float area <- my_parcel.shape.area;
-		// compute the revenue
-		float price_of_product <- lu.price_map[current_date.year];
-		float gain <- price_of_product * area * (1 - lu.risk * risk_control);
+		loop p over: my_parcels {
+			land_use lu <- p.my_land_use;
+			float area <- p.shape.area;
+			// compute the revenue
+			float price_of_product <- lu.price_map[current_date.year];
+			float gain <- price_of_product * area * (1 - lu.risk * risk_control);
+			
+			// compute the expense
+			float cost_of_product <- lu.cost_map[current_date.year];
+			float expense <-  cost_of_product * area;
+			float profit <- gain - expense;
+			
+			// update the money of farmer
+			money <- money + profit;
+		}
 		
-		// compute the expense
-		float cost_of_product <- lu.cost_map[current_date.year];
-		float expense <-  cost_of_product * area;
-		float profit <- gain - expense;
 		
-		// update the money of farmer
-		money <- money + profit;
-		
-		if (money < 0) {
+		loop while: (money < 0) {
 			// if the farmer have no money left, he/she sells his/her parcel
-			self.money <- self.money + self.my_parcel.price; //
-			self.my_parcel.owner <- nil;
-			self.my_parcel <- nil;
+			parcel p <- self.my_parcels[0];
+			self.money <- self.money + p.price; //
+			p.owner <- nil;
+			remove p from: my_parcels;
 		}
 	}
 }
@@ -493,7 +535,8 @@ experiment display_map
 			species farmer aspect: default;
 		}
 		monitor "year" value: current_date.year;
-		monitor "number of farmers with land: " value: (farmer count (each.my_parcel != nil));
+		monitor "number of farmers with land: " value: (farmer count (length(each.my_parcels) != 0));
+	
 //		display salinity
 //		{
 //			species parcel aspect: salinity;
