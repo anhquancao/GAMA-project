@@ -663,6 +663,15 @@ experiment BatchVariance type: batch
 				] to:"resVar.csv" type:"csv" rewrite: false;
 		}
 	}
+experiment Headless type: gui {
+	parameter "Risk control: " var: risk_control min: 0.5 max: 2.5 step: 0.5;
+	parameter "Land price:" var: land_price min: 5 * 10 ^ 4 max: 2 * 10 ^ 5 step: 5 * 10 ^ 4;
+	
+	output {
+		monitor "gdp" value: gdp;		
+	}
+}
+
 
 experiment display_map
 {
@@ -701,7 +710,7 @@ experiment display_map
 		}
 
 		monitor "year" value: current_date.year;
-		monitor "GDP per capita" value: gdp;
+		monitor "gdp" value: gdp;
 		
 
 		//		display salinity
