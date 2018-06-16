@@ -680,6 +680,23 @@ experiment display_map
 	parameter "Sell prob change: " var: sell_prob_change;
 	output
 	{
+		display "Lands distribution" {
+			chart "lands distribution" type: histogram {
+				datalist
+					legend: distribution_of(farmer where (!each.migrated) collect length(each.my_parcels)) at "legend"
+					value: distribution_of(farmer where (!each.migrated) collect length(each.my_parcels)) at "values" ;
+			}	
+		}
+		
+		display "Wealth distribution" {
+			chart "Wealth distribution" type: histogram {
+				datalist
+					legend: distribution_of(farmer where (!each.migrated) collect each.money) at "legend"
+					value: distribution_of(farmer where (!each.migrated) collect each.money) at "values" ;
+			}	
+		}
+		
+		
 		display "lands without farmer"
 		{
 			chart "lands without farmer" type: series
