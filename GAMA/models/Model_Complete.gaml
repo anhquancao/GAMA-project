@@ -665,7 +665,7 @@ experiment BatchVariance type: batch
 	}
 experiment Headless type: gui {
 	parameter "Risk control: " var: risk_control min: 0.5 max: 2.5 step: 0.5;
-	parameter "Land price:" var: land_price min: 5 * 10 ^ 4 max: 2 * 10 ^ 5 step: 5 * 10 ^ 4;
+	parameter "Sell prob change: " var: sell_prob_change min: 0.1 max: 0.5 step: 0.2;
 	
 	output {
 		monitor "error" value: parcel count (each.my_land_use.lu_code != each.lu_years[2010]);

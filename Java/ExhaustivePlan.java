@@ -52,7 +52,7 @@ public class ExhaustivePlan extends ExperimentPlan {
         exp.setStopCondition("cycle > 200 or current_date.year = 2010");
 
         exp.addParameter(new Parameter("risk_control", "FLOAT", 0.5, 2.5, 0.5));
-        exp.addParameter(new Parameter("land_price", "INT", 50000 , 200000, 50000));
+        exp.addParameter(new Parameter("sell_prob_change", "FLOAT", 0.1 , 0.5, 0.2));
 
         exp.addOutput(new Output("error", 1, "1"));
 
