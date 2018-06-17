@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Simulation id="" sourcePath="/home/quan/gama_workspace/ProjectUSTH-LUP/GAMA/models/Model_Complete.gaml" finalStep="200" until="cycle > 200 or current_date.year = 2010" experiment="Headless" >
+	<Parameters>
+		<Parameter var="risk_control" type="FLOAT" value="1.5" />
+		<Parameter var="land_price" type="INT" value="150000" />
+
+	</Parameters>
+	<Outputs>
+		<Output id="1" name="error" framerate="1" />
+
+	</Outputs>
+</Simulation>

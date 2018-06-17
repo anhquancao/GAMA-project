@@ -24,7 +24,7 @@ global
 	int nb_farmers <- 0;
 	float sell_prob_change <- 0.1;
 	float risk_control <- 1.5;
-	int end_year <- 2020;
+	int end_year <- 2010;
 	float land_price <- 10 ^ 5;
 	float gdp <- 0.0;
 	float max_price;
@@ -651,14 +651,14 @@ experiment BatchVariance type: batch
 		method exhaustive;
 		
 		init {
-			save ["Risk control", "Land price", "Prob change", "GDP per capita", "Farmer"] to: "resVar.csv" type: "csv" rewrite: true;
+			save ["Risk control", "Land price", "Prob change", "Error", "Farmer"] to: "resVar.csv" type: "csv" rewrite: true;
 		}
 		
 		reflex sauver {
 				save [
 					risk_control, 
 					land_price, sell_prob_change, 
-					mean(simulations collect (each.gdp)), 
+					mean(simulations collect (each.parcel count (each.my_land_use.lu_code != each.lu_years[2010]))), 
 					mean(simulations collect(each.nb_farmers))
 				] to:"resVar.csv" type:"csv" rewrite: false;
 		}
@@ -668,7 +668,7 @@ experiment Headless type: gui {
 	parameter "Land price:" var: land_price min: 5 * 10 ^ 4 max: 2 * 10 ^ 5 step: 5 * 10 ^ 4;
 	
 	output {
-		monitor "gdp" value: gdp;		
+		monitor "error" value: parcel count (each.my_land_use.lu_code != each.lu_years[2010]);
 	}
 }
 
@@ -728,6 +728,9 @@ experiment display_map
 
 		monitor "year" value: current_date.year;
 		monitor "gdp" value: gdp;
+		
+		// number of parcels that have different land use
+		monitor "error" value: parcel count (each.my_land_use.lu_code != each.lu_years[2010]);
 		
 
 		//		display salinity

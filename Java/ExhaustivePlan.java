@@ -48,16 +48,16 @@ public class ExhaustivePlan extends ExperimentPlan {
 
         exp.setEperimentName("Headless");
         exp.setFinalStep(200);
-        exp.setPath("/home/quan/gama_workspace/ProjectUSTH-LUP/models/Model_Complete.gaml");
+        exp.setPath("/home/quan/gama_workspace/ProjectUSTH-LUP/GAMA/models/Model_Complete.gaml");
         exp.setStopCondition("cycle > 200 or current_date.year = 2010");
 
         exp.addParameter(new Parameter("risk_control", "FLOAT", 0.5, 2.5, 0.5));
         exp.addParameter(new Parameter("land_price", "INT", 50000 , 200000, 50000));
 
-        exp.addOutput(new Output("gdp", 1, "1"));
+        exp.addOutput(new Output("error", 1, "1"));
 
-        double maxGDP = 0;
-        List<Parameter> maxPs = null;
+        double minError = Double.POSITIVE_INFINITY;
+        List<Parameter> minPs = null;
 
 
         while (exp.hasNextParametersSet()) {
@@ -74,15 +74,15 @@ public class ExhaustivePlan extends ExperimentPlan {
 
             XMLReader read = new XMLReader(XMLFilepath + "/simulation-outputs.xml");
             read.parseXmlFile();
-            double gdp = Double.parseDouble(read.getFinalValueOf("gdp"));
-            System.out.println("GDP: " + gdp);
-            if (maxGDP < gdp) {
-                maxGDP = gdp;
-                maxPs = ps;
+            double error = Double.parseDouble(read.getFinalValueOf("error"));
+            System.out.println("Error: " + error);
+            if (minError > error) {
+                minError = error;
+                minPs = ps;
             }
         }
-        System.out.println("Max GDP: " + maxGDP);
+        System.out.println("Min Error: " + minError);
         System.out.println("min parameter set:");
-        maxPs.stream().forEach(p -> System.out.println(p));
+        minPs.stream().forEach(p -> System.out.println(p));
     }
 }
