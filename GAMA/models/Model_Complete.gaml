@@ -530,7 +530,7 @@ species farmer
 	 */
 	float compute_neighborhood (land_use a_lu)
 	{
-		int nb_similars <- neighborhood count (length(each.my_parcels) != 0 and any(each.my_parcels).my_land_use = a_lu);
+		int nb_similars <- neighborhood count (!each.migrated and length(each.my_parcels) != 0 and any(each.my_parcels).my_land_use = a_lu);
 		return nb_similars / length(neighborhood);
 	}
 
